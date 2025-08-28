@@ -1,3 +1,3 @@
 .env
-/data/repo/
-/alembic/versions
+.data/repo/
+.alembic/versions
