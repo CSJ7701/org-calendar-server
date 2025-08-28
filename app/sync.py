@@ -16,6 +16,13 @@ def run_cmd(cmd, cwd=None):
 def sync_repo():
     repo_url = os.getenv("REPO_URL")
     branch = os.getenv("REPO_BRANCH", "main")
+    github_token = os.getenv("GITHUB_TOKEN")
+
+    if github_token and repo_url.startswith("https://"):
+        print("Authenticating with github token")
+        from urllib.parse import urlparse, urlunparse
+        parsed = urlparse(repo_url)
+        repo_url = urlunparse(parsed._replace(netloc=f"{github_token}@{parsed.netloc}"))
 
     db: Session = SessionLocal()
     snapshot = Snapshot(timestamp=datetime.utcnow())

@@ -1,4 +1,9 @@
 .env
-.data/db.sqlite
-.data/repo/
-.alembic/versions
+
+alembic/versions
+
+app/__pycache__
+
+data/db.sqlite
+data/repo
+
