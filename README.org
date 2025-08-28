@@ -1,0 +1,13 @@
+
+
+* Setup
+
+*Environment*
+Create a `.env` file at the root of the repo.
+Specify the following variables:
+- REPO_URL
+- REPO_BRANCH
+
+  REPO_URL should be an https URL to a public git repo, or an SSH URL. If you choose to use SSH, then you also need to specify the SSH key path in the docker-compose file.
+  You can also use https for a private repo if you enter your access token into the .env file - this will depend on the git repo host, for github, the token must be stored as GITHUB_TOKEN.
+  - improve this documentation later
