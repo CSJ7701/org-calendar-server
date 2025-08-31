@@ -19,7 +19,6 @@ def sync_repo():
     github_token = os.getenv("GITHUB_TOKEN")
 
     if github_token and repo_url.startswith("https://"):
-        print("Authenticating with github token")
         from urllib.parse import urlparse, urlunparse
         parsed = urlparse(repo_url)
         repo_url = urlunparse(parsed._replace(netloc=f"{github_token}@{parsed.netloc}"))
@@ -47,8 +46,6 @@ def sync_repo():
     except Exception as e:
         snapshot.status = "failure"
         snapshot.log = str(e)
-
-    print(snapshot.status)
 
     result = {
         "commit_hash": snapshot.commit_hash,
