@@ -1,4 +1,6 @@
 fastapi
+fastapi-utils
+typing_inspect
 uvicorn[standard]
 sqlalchemy
 alembic
