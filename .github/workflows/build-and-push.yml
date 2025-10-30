@@ -56,5 +56,5 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/$(echo "${{ env.OWNER }}" | tr '[:upper:]' '[:lower:]')/${{ env.FRONTEND_IMAGE }}:latest
-            ${{ env.REGISTRY }}/$(echo "${{ env.OWNER }}" | tr '[:upper:]' '[:lower:]')/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.owner_name.outputs.result }}/${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ steps.owner_name.outputs.result }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
