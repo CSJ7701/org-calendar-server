@@ -19,6 +19,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Sanitize repo owner
+        uses: actions/github-script@v6
+        id: owner_name
+        with:
+          result-encoding: string
+          script: return '${{ env.OWNER }}'.toLowerCase()
+
       - name: Log in to Github Container Registry
         uses: docker/login-action@v3
         with:
@@ -36,8 +43,8 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/$(echo "${{ env.OWNER }}" | tr '[:upper:]' '[:lower:]')/${{ env.BACKEND_IMAGE }}:latest
-            ${{ env.REGISTRY }}/$(echo "${{ env.OWNER }}" | tr '[:upper:]' '[:lower:]')/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.owner_name.outputs.result }}/${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ steps.owner_name.outputs.result }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
