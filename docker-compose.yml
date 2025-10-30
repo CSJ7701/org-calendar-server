@@ -1,14 +1,28 @@
-version: "3.9"
-
 services:
-  app:
-    build: .
+  backend:
+    build: ./backend
+    working_dir: /backend
     volumes:
-      - .:/app
+      - ./backend:/backend
       - ./data:/data
+      - ./views.lisp:/backend/views.lisp
       - ~/.ssh/id_rsa:/ssh/id_rsa:ro
     ports:
       - "8000:8000"
     env_file:
       - .env
+
+  frontend:
+    build: ./frontend
+    working_dir: /frontend
+    volumes:
+      - ./frontend:/frontend
+    ports:
+      - "8001:8000"
+    env_file:
+      - .env
+    environment:
+      - BACKEND_URL=http://backend:8000
+    profiles: ["with-frontend"]
+ 
       

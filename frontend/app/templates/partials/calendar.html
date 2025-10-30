@@ -1,0 +1,241 @@
+<div class="flex-1 min-h-0">
+    <div id="calendar" class="mt-4"></div>
+</div>
+
+<script>
+ document.addEventListener('DOMContentLoaded', function() {
+     const calendarEl = document.getElementById('calendar');
+
+     // Parse category name into a color
+     function stringToColor(str) {
+	 if (!str) return '#0071C5'; // Default blue
+
+	 // Hash function
+	 let hash = 0;
+	 for (let i=0; i<str.length; i++) {
+	     hash = str.charCodeAt(i) + ((hash << 5) - hash);
+	     hash |= 0; // Force 32-bit int
+	 }
+	 const hue = Math.abs(hash % 360);
+	 const saturation = 50 + (Math.abs(hash >> 3) % 15); // 65 + ... = 65-85%
+	 const lightness = 60 + (Math.abs(hash >> 5) % 10); // 45 + ... = 45-60%
+
+	 return hslToHex(hue, saturation, lightness);
+     }
+     // Convert to hex
+     function hslToHex(h, s, l) {
+	 s /= 100;
+	 l /= 100;
+
+	 const c = (1-Math.abs(2*l-1))*s;
+	 const x = c*(1-Math.abs(((h/60)%2)-1));
+	 const m = l-c/2;
+	 let r=0, g=0, b=0;
+
+	 if (0 <= h && h < 60) [r,g,b] = [c,x,0];
+	 else if (60 <= h && h < 120) [r,g,b] = [x,c,0];
+	 else if (120 <= h && h < 180) [r,g,b] = [0,c,x];
+	 else if (180 <= h && h < 240) [r,g,b] = [0,x,c];
+	 else if (240 <= h && h < 300) [r,g,b] = [x,0,c];
+	 else if (300 <= h && h < 360) [r,g,b] = [c,0,x];
+	 
+	 const toHex = n => {
+	     const hex = Math.round((n + m) * 255).toString(16).padStart(2, '0');
+	     return hex;
+	 };
+	 return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+     }
+     
+     // Function to fetch and parse ICS file
+     async function parseICSFeed(url) {
+         const response = await fetch(url);
+         const icsData = await response.text();
+         
+         const jcalData = ICAL.parse(icsData);
+         const comp = new ICAL.Component(jcalData);
+         const vevents = comp.getAllSubcomponents('vevent');
+         
+         return vevents.map(vevent => {
+             const event = new ICAL.Event(vevent);
+             
+             // Extract categories
+             const categoriesProp = vevent.getFirstProperty('categories');
+             let category = null;
+             if (categoriesProp) {
+                 const categories = categoriesProp.getValues();
+                 category = categories[0] ? categories[0].toLowerCase() : null;
+             }
+             
+             // extract color, override if present
+             // const color = stringToColor(category);
+	     let colorProp = vevent.getFirstPropertyValue('color');
+	     let color;
+	     if (typeof colorProp === 'string' && colorProp.trim() !== '') {
+		 // Normalize color string (handle #abc shorthand or named colors)
+		 color = colorProp.trim();
+		 if (!color.startsWith('#')) {
+		     // If its not hex, try color keywords
+		     const test = document.createElement('div');
+		     test.style.color = color;
+		     if (test.style.color === '') {
+			 color = stringToColor(category);
+		     }
+		 }
+	     } else {
+		 color = stringToColor(category);
+	     }
+	     
+             
+             // Return FullCalendar event object
+             return {
+                 title: event.summary,
+                 start: event.startDate.toJSDate(),
+                 end: event.endDate.toJSDate(),
+                 allDay: event.startDate.isDate,
+                 extendedProps: {
+                     description: event.description,
+                     location: event.location,
+                     category: category,
+		     icalColor: colorProp || null
+                 },
+                 color: color,
+                 borderColor: color
+             };
+         });
+     }     
+
+     let rawEvents = [];
+     let calendar = null;
+
+     const elFilterSummary = document.getElementById('filter-summary');
+     const elFilterCategory = document.getElementById('filter-category');
+     const elFilterStart = document.getElementById('filter-start');
+     const elFilterEnd = document.getElementById('filter-end');
+     const btnFilterApply = document.getElementById('filter-apply');
+     const btnFilterReset = document.getElementById('filter-reset');
+
+     const filterUIExists = !!(elFilterSummary || elFilterCategory || elFilterStart || elFilterEnd || btnFilterApply || btnFilterReset);
+
+     // populate category dropdown if present
+     function populateCategoryDropdown(events) {
+         if (!elFilterCategory) return;
+         const catSet = new Set(events.map(e => (e.extendedProps && e.extendedProps.category) ? e.extendedProps.category : null).filter(Boolean));
+         // Clear and add default
+         elFilterCategory.innerHTML = '';
+         const defaultOpt = document.createElement('option'); defaultOpt.value = ''; defaultOpt.textContent = 'All Categories';
+         elFilterCategory.appendChild(defaultOpt);
+         Array.from(catSet).sort().forEach(cat => {
+             const opt = document.createElement('option');
+             opt.value = cat;
+             opt.textContent = cat;
+             elFilterCategory.appendChild(opt);
+         });
+     }
+
+     // apply filters to a given events array and return filtered array
+     function applyFiltersTo(events) {
+         if (!filterUIExists) return events.slice();
+         const summaryVal = elFilterSummary ? elFilterSummary.value.trim().toLowerCase() : '';
+         const categoryVal = elFilterCategory ? elFilterCategory.value : '';
+         const startVal = elFilterStart && elFilterStart.value ? new Date(elFilterStart.value) : null;
+         const endVal = elFilterEnd && elFilterEnd.value ? new Date(elFilterEnd.value) : null;
+
+         return events.filter(e => {
+             // summary match (if provided)
+             if (summaryVal) {
+                 if (!(e.title && e.title.toLowerCase().includes(summaryVal))) return false;
+             }
+             // category match
+             if (categoryVal) {
+                 const evCat = (e.extendedProps && e.extendedProps.category) ? e.extendedProps.category : '';
+                 if (evCat !== categoryVal) return false;
+             }
+             // date range match (use event start)
+             if (startVal || endVal) {
+                 const evStart = new Date(e.start);
+                 if (startVal && evStart < startVal) return false;
+                 if (endVal && evStart > endVal) return false;
+             }
+             return true;
+         });
+     }
+
+     // hook up apply/reset handlers (only if buttons exist)
+     function wireFilterButtons() {
+         if (btnFilterApply) {
+             btnFilterApply.addEventListener('click', () => {
+                 if (!calendar) return;
+                 const filtered = applyFiltersTo(rawEvents);
+                 calendar.removeAllEvents();
+                 calendar.addEventSource(filtered);
+             });
+         }
+         if (btnFilterReset) {
+             btnFilterReset.addEventListener('click', () => {
+                 if (!calendar) return;
+                 if (elFilterSummary) elFilterSummary.value = '';
+                 if (elFilterCategory) elFilterCategory.value = '';
+                 if (elFilterStart) elFilterStart.value = '';
+                 if (elFilterEnd) elFilterEnd.value = '';
+                 calendar.removeAllEvents();
+                 calendar.addEventSource(rawEvents);
+             });
+         }
+
+         // optional: live-filtering when inputs change (non-destructive)
+         if (elFilterSummary) {
+             elFilterSummary.addEventListener('input', () => {
+                 // small convenience: live preview
+                 if (!calendar) return;
+                 const filtered = applyFiltersTo(rawEvents);
+                 calendar.removeAllEvents();
+                 calendar.addEventSource(filtered);
+             });
+         }
+         if (elFilterCategory) {
+             elFilterCategory.addEventListener('change', () => {
+                 if (!calendar) return;
+                 const filtered = applyFiltersTo(rawEvents);
+                 calendar.removeAllEvents();
+                 calendar.addEventSource(filtered);
+             });
+         }
+     }
+
+     // ---------- FullCalendar initialization ----------
+     const calendarConfig = {
+         initialView: 'dayGridMonth',
+         height: 'auto',
+         headerToolbar: {
+             left: 'prev,next today',
+             center: 'title',
+             right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+         },
+         events: async function(info, successCallback, failureCallback) {
+             try {
+                 const events = await parseICSFeed('{{ backend_calendar_url }}');
+                 rawEvents = events.slice(); // keep a copy (not mutated)
+                 // If filter UI exists, pre-populate categories and return filtered set
+                 if (filterUIExists) populateCategoryDropdown(rawEvents);
+                 const toRender = filterUIExists ? applyFiltersTo(rawEvents) : rawEvents;
+                 successCallback(toRender);
+             } catch (err) {
+                 console.error('Error loading calendar events:', err);
+                 failureCallback(err);
+             }
+         },
+         eventClick: function(info) {
+             // default behavior: simple alert (you can replace with modal)
+             alert(info.event.title + '\n' + info.event.start);
+         }
+     };
+
+     // create & render calendar
+     calendar = new FullCalendar.Calendar(calendarEl, calendarConfig);
+     calendar.render();
+
+     // wire buttons/listeners if UI exists
+     if (filterUIExists) wireFilterButtons();
+
+ });
+</script>

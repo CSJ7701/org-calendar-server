@@ -1,7 +1,12 @@
 fastapi
 fastapi-utils
+itsdangerous
+slowapi
 typing_inspect
 uvicorn[standard]
 sqlalchemy
 alembic
 python-dotenv
+
+icalendar
+sexpdata

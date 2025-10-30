@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-[60vh]">
+  <div class="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
+    <h1 class="test-2xl font-bold mb-6 text-center">Admin Login</h1>
+    {% if error %}
+    <p class="text-red-600 mb-4 text-center">{{ error }}</p>
+    {% endif %}
+    <form method="post">
+      <label class="block mb-6">
+	<span class="text-gray-700">Password</span>
+	<input type="password" name="password" class="border rounded w-full p-2" required>
+      </label>
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+	Log In
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

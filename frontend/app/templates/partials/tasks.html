@@ -1,0 +1,199 @@
+<div class="flex-1 min-h-0 mt-6">
+    <ul id="task-list" class="space-y-3"></ul>
+</div>
+
+<script>
+ document.addEventListener('DOMContentLoaded', async function() {
+     const taskList = document.getElementById('task-list');
+     let allTasks = [];
+
+     // Detect filter elements (may not exist on other pages)
+     const elSummary = document.getElementById('task-filter-summary');
+     const elCategory = document.getElementById('task-filter-category');
+     const elStatus = document.getElementById('task-filter-status');
+     const elDue = document.getElementById('task-filter-due');
+     const btnApply = document.getElementById('task-filter-apply');
+     const btnReset = document.getElementById('task-filter-reset');
+     const filtersExist = !!(elSummary || elCategory || elStatus || elDue);
+
+     function stringToColor(str) {
+	 if (!str) return '#0071C5'; // Default blue
+
+         let hash = 0;
+         for (let i = 0; i < str.length; i++) {
+             hash = str.charCodeAt(i) + ((hash << 5) - hash);
+             hash |= 0; // force 32-bit int
+         }
+
+         const hue = Math.abs(hash) % 360;
+         const saturation = 40 + (Math.abs(hash >> 3) % 15); // 40–55%
+         const lightness = 60 + (Math.abs(hash >> 5) % 10);  // 60–70%
+         return hslToHex(hue, saturation, lightness);
+     }
+
+     function hslToHex(h, s, l) {
+         s /= 100;
+         l /= 100;
+         const c = (1 - Math.abs(2 * l - 1)) * s;
+         const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+         const m = l - c / 2;
+         let r = 0, g = 0, b = 0;
+         if (0 <= h && h < 60) [r, g, b] = [c, x, 0];
+         else if (60 <= h && h < 120) [r, g, b] = [x, c, 0];
+         else if (120 <= h && h < 180) [r, g, b] = [0, c, x];
+         else if (180 <= h && h < 240) [r, g, b] = [0, x, c];
+         else if (240 <= h && h < 300) [r, g, b] = [x, 0, c];
+         else if (300 <= h && h < 360) [r, g, b] = [c, 0, x];
+
+         const toHex = n => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+         return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+     }
+
+     async function loadTasks() {
+	 const res = await fetch('{{ backend_calendar_url }}');
+	 if (!res.ok) {
+	     throw new Error(`HTTP error! status: ${res.status}`);
+	 }
+	 const text = await res.text();
+	 const tasks = parseVTODO(text);
+	 allTasks = tasks;
+	 if (filtersExist) populateFilters(tasks);
+	 renderTasks(applyFilters(tasks));
+     }
+
+     function parseVTODO(icsText) {
+	 const tasks = [];
+	 const jcalData = ICAL.parse(icsText);
+	 const comp = new ICAL.Component(jcalData);
+	 const vtodos = comp.getAllSubcomponents('vtodo');
+
+	 for (const vtodo of vtodos) {
+	     const dueProperty = vtodo.getFirstPropertyValue('due');
+	     
+	     // --- Category normalization ---
+	     let category = null;
+	     const categoriesProp = vtodo.getFirstProperty('categories');
+	     if (categoriesProp) {
+		 let raw = categoriesProp.getValues ? categoriesProp.getValues() : categoriesProp.getValue();
+		 if (Array.isArray(raw)) raw = raw[0];
+		 if (typeof raw === 'string') {
+		     category = raw.split(',')[0].trim().toLowerCase();
+		 }
+	     }
+
+	     let colorProp = vtodo.getFirstPropertyValue('color');
+	     let color;
+	     if (typeof colorProp === 'string' && colorProp.trim() !== '') {
+		 color = colorProp.trim();
+		 if (!color.startsWith('#')) {
+		     const test = document.createElement('div');
+		     test.style.color = color;
+		     if (test.style.color === '') {
+			 color = null;
+		     }
+		 }
+	     } else {
+		 color = null;
+	     }
+
+	     
+	     tasks.push({
+		 summary: vtodo.getFirstPropertyValue('summary') || '(No Title)',
+		 due: dueProperty ? dueProperty.toJSDate() : null,
+		 status: vtodo.getFirstPropertyValue('status') || 'NEEDS-ACTION',
+		 category: category,
+		 color: color
+	     });
+	 }
+	 return tasks;
+     }
+
+     // --- Filters ---
+     function populateFilters(tasks) {
+	 // categories
+	 const cats = [...new Set(tasks.map(t => t.category).filter(Boolean))].sort();
+	 elCategory.innerHTML = '<option value="">All Categories</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+	 // statuses
+	 const statuses = [...new Set(tasks.map(t => t.status).filter(Boolean))].sort();
+	 elStatus.innerHTML = '<option value="">All Statuses</option>' + statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+     }     
+
+     function applyFilters(tasks) {
+	 if (!filtersExist) return tasks;
+	 const summaryVal = elSummary?.value.toLowerCase() || '';
+	 const categoryVal = elCategory?.value || '';
+	 const statusVal = elStatus?.value || '';
+	 const dueVal = elDue?.value ? new Date(elDue.value) : null;
+
+	 return tasks.filter(t => {
+	     if (summaryVal && !t.summary.toLowerCase().includes(summaryVal)) return false;
+	     if (categoryVal && t.category !== categoryVal) return false;
+	     if (statusVal && t.status !== statusVal) return false;
+	     if (dueVal && t.due && t.due.toDateString() !== dueVal.toDateString()) return false;
+	     return true;
+	 });
+     }
+
+     if (btnApply) btnApply.addEventListener('click', () => renderTasks(applyFilters(allTasks)));
+     if (btnReset) btnReset.addEventListener('click', () => {
+	 elSummary.value = '';
+	 elCategory.value = '';
+	 elStatus.value = '';
+	 elDue.value = '';
+	 renderTasks(allTasks);
+     });
+
+     function getStatusColor(status) {
+	 if (["DONE", "COMPLETED"].includes(status)) return "bg-green-500 text-green-700";
+	 if (["TODO", "NEEDS-ACTION", "PENDING"].includes(status)) return "bg-blue-500 text-blue-700";
+	 if (["IN-PROGRESS", "ACTIVE"].includes(status)) return "bg-yellow-400 text-yellow-700";
+	 if (["CANCELLED", "VOID"].includes(status)) return "bg-gray-400 text-gray-600";
+	 return "bg-gray-200 text-gray-700";
+     }
+
+     function renderTasks(tasks) {
+	 taskList.innerHTML = '';
+	 if (tasks.length === 0) {
+	     taskList.innerHTML = `
+		 <li class="text-center text-gray-500 italic py-6 bg-gray-50 rounded-xl border border-gray-200">
+		     No tasks found
+		 </li>`;
+	     return;
+	 }
+	 
+	 tasks.forEach(task => {
+	     const li = document.createElement('li');
+	     const statusColor = getStatusColor(task.status);
+	     // const categoryColor = stringToColor(task.category);
+	     const categoryColor = task.color ? task.color : stringToColor(task.category);
+	     const dueText = task.due ? task.due.toLocaleDateString() : 'No due date';
+	     const [dotColor, textColor] = statusColor.split(' ');
+	     
+	     li.className = 'flex justify-between items-center bg-white border border-gray-200 rounded-xl shadow-sm px-4 py-3 transition hover:shadow-md hover:border-blue-200';
+
+	     li.innerHTML = `
+		 <div class="flex flex-col gap-1">
+		     <div class="flex items-center gap-3">
+			 <div class="w-3 h-3 rounded-full ${dotColor}"></div>
+			 <span class="font-medium text-gray-800 ${statusColor.includes('green') ? 'line-through text-gray-500' : ''}">
+			     ${task.summary}
+			 </span>
+		     </div>
+		     ${
+		     task.category
+		     ? `<span class="inline-block w-fit text-xs text-center font-medium rounded-full px-2 py-0.5" style="background-color: ${categoryColor}33; color: ${categoryColor};"> ${task.category} </span>` : ''}
+	     </div>
+	     <div class="text-right text-sm">
+	     <div class="text-gray-500">${dueText}</div>
+	     <div class="font-medium ${textColor}">
+	     ${task.status}
+	     </div>
+	     </div>
+		     `;
+	     taskList.appendChild(li);
+	 });
+     }
+     
+     await loadTasks();
+ });
+</script>

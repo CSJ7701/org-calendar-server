@@ -1,0 +1,55 @@
+* Org Calendar Server - Frontend
+
+** Config.json
+*Text*
+#+begin_src json
+  {
+    "Section": {
+      "field": {
+        "value": "example value",
+        "type": "text"
+      }
+    }
+  }
+#+end_src
+
+*Number*
+#+begin_src json
+  {
+    "Section": {
+      "field": {
+        "value": "10",
+        "type": "number"
+      }
+    }
+  }
+#+end_src
+
+*Select*
+#+begin_src json
+  {
+    "Section": {
+      "field": {
+        "value": "example1",
+        "type": "select",
+        "options": [
+          "example1",
+          "example2",
+          "example3"
+        ]
+      }
+    }
+  }
+#+end_src
+
+*Bool*
+#+begin_src json
+  {
+    "Section": {
+      "field": {
+        "value": "true",
+        "type": "bool"
+      }
+    }
+  }
+#+end_src

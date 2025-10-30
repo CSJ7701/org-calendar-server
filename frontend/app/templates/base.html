@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+	<meta charset="UTF-8">
+	<title>{% block title %}{{ app_name }}{% endblock %}</title>
+
+	<!-- Tailwind CSS -->
+	<script src="https://cdn.tailwindcss.com"></script>
+
+	<!-- HTMX -->
+	<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+	
+	<!-- FullCalendar + ICal.JS -->
+	<!-- Once fullcalendar v7.0.0 is released, update to ICal v2 -->
+	<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.19/index.global.min.js"></script>
+	
+    </head>
+    <body class="bg-gray-50 text-gray-900 min-h-screen">
+	<!-- Header / Navbar -->
+	{% if show_navbar %}
+	{% include 'partials/navbar.html' %}
+	{% endif %}
+
+	<!-- Main content -->
+	<!-- <main class="max-w-4xl mx-auto mt-8 p-6 bg-white rounded-2xl shadow">
+	    {% block content2 %}{% endblock %}
+	</main>
+	-->
+	<main class="flex-1 px-2 py-2">
+	    {% block content %}{% endblock %}
+	</main>
+    </body>
+</html>

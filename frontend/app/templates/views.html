@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% set show_navbar = True %}
+{% block title %}Views{% endblock %}
+
+{% block content %}
+<div class="w-full min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex flex-col items-center py-10 px-4">
+    <h1 class="text-3xl font-semibold mb-8 text-gray-800">Available Views</h1>
+
+    <div id="views-list" class="w-full max-w-3xl space-y-5">
+	<!-- Cards dynamically inserted here -->
+    </div>
+
+    <!-- Token Generator -->
+<div id="token-generator"
+     class="w-full max-w-3xl mt-10 bg-white border border-gray-200 rounded-2xl p-5 shadow-sm text-gray-800">
+
+  <h2 class="text-lg font-semibold mb-3 text-gray-700 flex items-center gap-2">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600" fill="none"
+         viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M20.4 15a8 8 0 11-7.4-11 7.5 7.5 0 017.4 11z" />
+    </svg>
+    Token Generator
+  </h2>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3 text-sm">
+    <label class="flex flex-col">
+      <span class="text-gray-600 mb-1">Length</span>
+      <input id="token-length" type="number" value="12" min="6" max="128"
+             class="border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
+    </label>
+    <label class="flex items-center gap-2">
+      <input id="token-uppercase" type="checkbox" class="accent-blue-600" checked>
+      <span class="text-gray-700">Uppercase</span>
+    </label>
+    <label class="flex items-center gap-2">
+      <input id="token-numbers" type="checkbox" class="accent-blue-600" checked>
+      <span class="text-gray-700">Numbers</span>
+    </label>
+    <label class="flex items-center gap-2">
+      <input id="token-symbols" type="checkbox" class="accent-blue-600">
+      <span class="text-gray-700">Symbols (URL-safe)</span>
+    </label>
+  </div>
+
+  <button id="generate-token"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium transition">
+    Generate Token
+  </button>
+
+  <div id="token-output" class="mt-4 text-center hidden">
+    <div id="generated-token"
+         class="inline-block text-lg font-mono text-blue-700 bg-blue-50 px-3 py-1 rounded-lg"></div>
+    <button id="copy-token-btn"
+            class="ml-3 p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition"
+            title="Copy Token">
+      <!-- Clipboard Icon (reused from above) -->
+      <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
+           class="w-5 h-5 inline-block align-middle">
+        <path d="M48.186 92.137c0-8.392 6.49-14.89 16.264-14.89s29.827-.225 29.827-.225-.306-6.99-.306-15.88c0-8.888 7.954-14.96 17.49-14.96 9.538 0 56.786.401 61.422.401 4.636 0 8.397 1.719 13.594 5.67 5.196 3.953 13.052 10.56 16.942 14.962 3.89 4.402 5.532 6.972 5.532 10.604 0 3.633 0 76.856-.06 85.34-.059 8.485-7.877 14.757-17.134 14.881-9.257.124-29.135.124-29.135.124s.466 6.275.466 15.15-8.106 15.811-17.317 16.056c-9.21.245-71.944-.49-80.884-.245-8.94.245-16.975-6.794-16.975-15.422s.274-93.175.274-101.566z"/>
+      </svg>
+    </button>
+  </div>
+</div>   
+
+<script>
+
+ const calendarViewBaseUrl = "{{ url_for('calendar_view', token='placeholder') }}".replace('placeholder', '');
+ 
+ 
+ async function loadViews() {
+     const response = await fetch("{{ backend_views_url }}");
+     const data = await response.json();
+
+     const list = document.getElementById("views-list");
+     list.innerHTML = "";
+
+     for (const [id, view] of Object.entries(data)) {
+	 const card = document.createElement("div");
+	 card.className = "bg-white shadow-md rounded-2xl p-5 border border-gray-200 transition hover:shadow-lg hover:border-blue-300";
+	 
+	 card.innerHTML = `<div class="flex justify-between items-center">
+             <div class="flex items-center gap-3">
+		 <div class="w-10 h-10 flex items-center justify-center bg-blue-100 text-blue-600 font-semibold rounded-xl">
+		     ${view.name.charAt(0).toUpperCase()}
+		 </div>
+		 <a href="${calendarViewBaseUrl}${view.token}">
+		     <h2 class="text-lg font-medium text-gray-800 transition hover:text-blue-600">${view.name}</h2>
+		 </a>
+             </div>
+             <div class="flex gap-2">
+		 <button title="Copy Link"
+			 class="p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition"
+			 onclick="copyToken('${view.token}')">
+		     <!-- Clipboard Icon -->
+		     <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" fill="currentColor" class="w-5 h-5" stroke="currentColor">
+			 <g id="SVGRepo_bgCarrier" stroke-width="4"></g>
+			 <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+			 <g id="SVGRepo_iconCarrier">
+			     <path d="M48.186 92.137c0-8.392 6.49-14.89 16.264-14.89s29.827-.225 29.827-.225-.306-6.99-.306-15.88c0-8.888 7.954-14.96 17.49-14.96 9.538 0 56.786.401 61.422.401 4.636 0 8.397 1.719 13.594 5.67 5.196 3.953 13.052 10.56 16.942 14.962 3.89 4.402 5.532 6.972 5.532 10.604 0 3.633 0 76.856-.06 85.34-.059 8.485-7.877 14.757-17.134 14.881-9.257.124-29.135.124-29.135.124s.466 6.275.466 15.15-8.106 15.811-17.317 16.056c-9.21.245-71.944-.49-80.884-.245-8.94.245-16.975-6.794-16.975-15.422s.274-93.175.274-101.566zm16.734 3.946l-1.152 92.853a3.96 3.96 0 0 0 3.958 4.012l73.913.22a3.865 3.865 0 0 0 3.91-3.978l-.218-8.892a1.988 1.988 0 0 0-2.046-1.953s-21.866.64-31.767.293c-9.902-.348-16.672-6.807-16.675-15.516-.003-8.709.003-69.142.003-69.142a1.989 1.989 0 0 0-2.007-1.993l-23.871.082a4.077 4.077 0 0 0-4.048 4.014zm106.508-35.258c-1.666-1.45-3.016-.84-3.016 1.372v17.255c0 1.106.894 2.007 1.997 2.013l20.868.101c2.204.011 2.641-1.156.976-2.606l-20.825-18.135zm-57.606.847a2.002 2.002 0 0 0-2.02 1.988l-.626 96.291a2.968 2.968 0 0 0 2.978 2.997l75.2-.186a2.054 2.054 0 0 0 2.044-2.012l1.268-62.421a1.951 1.951 0 0 0-1.96-2.004s-26.172.042-30.783.042c-4.611 0-7.535-2.222-7.535-6.482S152.3 63.92 152.3 63.92a2.033 2.033 0 0 0-2.015-2.018l-36.464-.23z">
+			     </path></g></svg>
+		 </button>
+		 <button title="Toggle Details"
+			 class="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-700 transition rotate-0"
+			 id="arrow-${id}" onclick="toggleDetails('${id}')">
+		     <!-- Chevron Down Icon -->
+		     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 transition-transform duration-200"
+			  fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+			 <path stroke-linecap="round" stroke-linejoin="round"
+			       d="M19 9l-7 7-7-7" />
+		     </svg>
+		 </button>
+             </div>
+	 </div>
+
+	 <div id="details-${id}"
+              class="hidden mt-4 border-t border-gray-100 pt-4 text-sm text-gray-700 space-y-3 transition-all duration-200 ease-in-out">
+             <div class="grid grid-cols-2 gap-2">
+		 <p><span class="font-semibold text-gray-600">Token:</span> <span class="text-gray-800">${view.token}</span></p>
+		 <p><span class="font-semibold text-gray-600">Default Detail:</span> <span class="text-gray-800">${view.default_detail}</span></p>
+             </div>
+
+             <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 mt-2">
+		 <p class="font-semibold text-gray-700 mb-2">Calendars:</p>
+		 <ul class="space-y-3">
+		     ${view.calendars.map(cal => `
+	 <li class="bg-white border border-gray-200 rounded-lg p-3 text-gray-800 shadow-sm">
+	 <div class="font-medium text-gray-700 mb-1"><span class="font-semibold">Name:</span> ${cal.name}</div>
+	 <div class="text-sm text-gray-600 mb-1"><span class="font-semibold">Detail:</span> ${cal.detail}</div>
+	 ${cal.queries && cal.queries.length ? `
+      <ul class="pl-4 border-l border-gray-200 space-y-1">
+        ${cal.queries.map(q => `
+             <li class="bg-gray-50 rounded-md p-2 border border-gray-100">
+             <div><span class="font-medium text-gray-600">Detail:</span> ${q.detail}</div>
+             <div><span class="font-medium text-gray-600">Filter:</span> 
+             <code class="text-blue-700">${JSON.stringify(q.filter)}</code>
+             </div>
+             </li>`).join("")}
+      </ul>` : `<div class="text-gray-500 italic">No queries</div>`}
+	 </li>`).join("")}
+</ul>
+		 
+        </div>
+      </div>
+	 `;
+
+	 list.appendChild(card)
+     }
+
+     // Initialize token generator after data is loaded
+     setupTokenGenerator(data);
+ }
+
+ function toggleDetails(id) {
+     const el = document.getElementById(`details-${id}`);
+     const arrow = document.querySelector(`#arrow-${id} svg`);
+     el.classList.toggle("hidden");
+     arrow.classList.toggle("rotate-180");
+ }
+
+ function copyToken(token) {
+     const url = `https://example.com/view/${token}`; // PLACEHOLDER
+     navigator.clipboard.writeText(url);
+     const toast = document.createElement("div");
+     toast.innerText = "Copied to clipboard!";
+     toast.className = "fixed bottom-6 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md animate-fade-in-out";
+     document.body.appendChild(toast);
+     setTimeout(() => toast.remove(), 1500);
+ }
+
+ // Token Generator Functionality
+
+ function generateRandomToken(length, opts) {
+     let chars = "abcdefghijklmnopqrstuvwxyz";
+     if (opts.uppercase) chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+     if (opts.numbers) chars += "1234567890";
+     if (opts.symbols) chars += "-_!.";
+     let token = ""
+     for (let i=0; i<length; i++) {
+	 token += chars.charAt(Math.floor(Math.random() * chars.length));
+     }
+     return token;
+ }
+
+ function getExistingTokens(data) {
+     return new Set(Object.values(data).map(v => v.token));
+ }
+
+ async function setupTokenGenerator(viewData) {
+     const btn = document.getElementById("generate-token");
+     const outDiv = document.getElementById("token-output");
+     const outText = document.getElementById("generated-token");
+     const copyBtn = document.getElementById("copy-token-btn");
+
+     btn.addEventListener("click", () => {
+	 const length = parseInt(document.getElementById("token-length").value) || 8;
+	 const opts = {
+	     uppercase: document.getElementById("token-uppercase").checked,
+	     numbers: document.getElementById("token-numbers").checked,
+	     symbols: document.getElementById("token-symbols").checked
+	 };
+
+	 const existing = getExistingTokens(viewData);
+	 let token;
+	 do {
+	     token = generateRandomToken(length, opts);
+	 } while (existing.has(token));
+	 outText.textContent = token;
+	 outDiv.classList.remove("hidden");
+     });
+
+     copyBtn.addEventListener("click", () => {
+	 const token = outText.textContent;
+	 navigator.clipboard.writeText(token);
+	 const toast = document.createElement("div");
+	 toast.innerText = "Token copied!";
+	 toast.className = "fixed bottom-6 left-1/2 -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md animate-fade-in-out";
+	 document.body.appendChild(toast);
+	 setTimeout(() => toast.remove(), 1500);
+     });
+ }	 
+
+ loadViews();
+ 
+</script>
+
+<style>
+ @keyframes fade-in-out {
+     0% { opacity: 0; transform: translateY(10px); }
+     20%, 80% { opacity: 1; transform: translateY(0); }
+     100% { opacity: 0; transform: translateY(10px); }
+ }
+ .animate-fade-in-out {
+     animation: fade-in-out 1.5s ease-in-out;
+ }
+</style>
+{% endblock %}

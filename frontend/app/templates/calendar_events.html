@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar - {{ calendar_name }}{% endblock %}
+
+{% block content %}
+
+<div class="bg-white rounded-2xl shadow p-6 flex flex-col space-y-4">
+
+    <!-- Calendar Partial -->
+    <div class="flex-1 overflow-hidden h-full">
+	{% include "partials/calendar.html" %}
+    </div>
+
+    <!-- Filter Card -->
+    <div class="relative">
+	<button id="filter-toggle"
+		    class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl shadow hover:bg-blue-700 transition">
+	    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+		 viewBox="0 0 24 24" stroke="currentColor">
+		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+		      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2l-7 8v5l-4 2v-7L3 6V4z" />
+	    </svg>
+	    <span>Filter Events</span>
+	    <svg id="filter-arrow" xmlns="http://www.w3.org/2000/svg"
+		 class="h-4 w-4 transform transition-transform duration-200"
+		 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+		      d="M19 9l-7 7-7-7" />
+	    </svg>
+	</button>
+
+	<div id="filter-panel"
+             class="mt-3 bg-gray-50 border rounded-xl p-4 shadow-inner overflow-hidden transition-all duration-300 ease-in-out max-h-0 opacity-0">
+	    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+		<input id="filter-summary" type="text" placeholder="Filter by summary..."
+		       class="border rounded-lg px-3 py-2 text-sm w-full" />
+		<select id="filter-category"
+			    class="border rounded-lg px-3 py-2 text-sm w-full">
+		    <option value="">All Categories</option>
+		</select>
+		<input id="filter-start" type="date"
+		       class="border rounded-lg px-3 py-2 text-sm w-full" />
+		<input id="filter-end" type="date"
+		       class="border rounded-lg px-3 py-2 text-sm w-full" />
+	    </div>
+	    <div class="flex justify-end gap-2 mt-3">
+		<button id="filter-apply"
+			    class="bg-blue-600 text-white rounded-lg px-3 py-1 text-sm hover:bg-blue-700">
+		    Apply
+		</button>
+		<button id="filter-reset"
+			    class="bg-gray-300 text-black rounded-lg px-3 py-1 text-sm hover:bg-gray-400">
+		    Reset
+		</button>
+	    </div>
+	</div>
+    </div>    
+</div>
+
+<script>
+ document.addEventListener('DOMContentLoaded', () => {
+     const toggleBtn = document.getElementById('filter-toggle');
+     const panel = document.getElementById('filter-panel');
+     const arrow = document.getElementById('filter-arrow');
+     let open = false;
+
+     toggleBtn.addEventListener('click', () => {
+	 open = !open;
+	 if (open) {
+	     panel.style.maxHeight = panel.scrollHeight + "px";
+	     panel.style.opacity = "1";
+	     arrow.classList.add("rotate-180");
+	 } else {
+	     panel.style.maxHeight = "0";
+	     panel.style.opacity = "0";
+	     arrow.classList.remove("rotate-180");
+	 }
+     });
+ });
+</script>
+
+{% endblock %}

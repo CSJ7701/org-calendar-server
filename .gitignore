@@ -1,10 +1,13 @@
 .env
+views.lisp
 
-alembic/versions
+backend/views.lisp
+backend/alembic/versions
+backend/app/__pycache__
 
-app/__pycache__
+frontend/app/__pycache__
+/frontend/config.json
 
-data/db.sqlite
-data/test.org
 data/repo
+data/db.sqlite
 

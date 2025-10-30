@@ -3,7 +3,7 @@ import os
 import logging
 from .sync import sync_repo
 
-logger = logging.getLogger("uvicorn")
+logger = logging.getLogger("org-cal.sync")
 
 SYNC_INTERVAL = int(os.getenv("SYNC_INTERVAL_SECONDS", "300"))
 SYNC_RETRY = int(os.getenv("SYNC_RETRY_SECONDS", "60"))
