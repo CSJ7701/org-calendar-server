@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REGISTRY: ghcr.io
-      IMAGE_OWNER: ${{ github.repository_owner }}
-      BACKEND_IMAGE: ${{ github.repository_owner }}/org-calendar-backend
-      FRONTEND_IMAGE: ${{ github.repository_owner }}/org-calendar-frontend
+      OWNER: ${{ github.repository_owner }}
+      BACKEND_IMAGE: org-calendar-backend
+      FRONTEND_IMAGE: org-calendar-frontend
 
     steps:
       - name: Checkout code
@@ -36,8 +36,8 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
-            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/$(echo "${{ env.OWNER }}" | tr '[:upper:]' '[:lower:]')/${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.REGISTRY }}/$(echo "${{ env.OWNER }}" | tr '[:upper:]' '[:lower:]')/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -46,5 +46,5 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
-            ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/$(echo "${{ env.OWNER }}" | tr '[:upper:]' '[:lower:]')/${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.REGISTRY }}/$(echo "${{ env.OWNER }}" | tr '[:upper:]' '[:lower:]')/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
