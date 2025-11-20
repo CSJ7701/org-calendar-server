@@ -1,0 +1,88 @@
+* Org Calendar Server
+
+This project is intended to serve iCal files based off of a user's org files. Org files are synced automatically from a git repo, parsed using user-defined "views", and served as tokenized .ics endpoints. This project also includes an optional frontend, to streamline access to these endpoints.
+
+The inspiration for this effort came primarily from [[https://calendar.online]], which I used for some time. Calendar.online allows you to create free, public iCal calendars, then share them with relatively fine-grained visibility settings. I wanted to be able to replicate some of this functionality within org-mode, since I sometimes have a need to share calendar information with family/friends, but may not want to share every detail of my schedule with them.
+
+* Backend
+The backend for this service primarily handles syncing and parsing of your org-mode files.
+
+** Setup
+Most of the setup for the backend occurs within the docker-compose.yml file.
+
+#+begin_src
+  services:
+  backend:
+    image: ghcr.io/csj7701/org-calendar-backend:latest
+    container_name: org-calendar-backend
+    volumes:
+      - ./data:/data
+      - ./views.lisp:/backend/views.lisp
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+#+end_src
+
+The example above showcases the bare-minimum setup you need to get the backend container running.
+You do not have to use a .env file - you /can/ specify the environment variables directly in the docker-compose file, but I find it easier to consolidate environment variables in the .env file if you plan on using the frontend container as well. All environment variables are specified and explained later.
+When defining the volumes, note the =./views.lisp:/backend/views.lisp= entry. This can be changed to whatever you like - =./views.lisp= in the example above refers to a "views.lisp" file in the same directory as the docker-compose file. You can replace this with a path (absolute, or relative to the docker-compose file) to the file defining your views. =/backend/views.lisp= refers to the location this file will be mounted within your container - this will be relevant for the environment variables you define.
+
+/NOTE:/ Org files are accessed through git. If you plan on syncing a git repo via SSH, you will need to ensure that your ssh token is imported into the container. This can be done with an additional entry to the 'volumes' section (edit as necessary):
+=- ~/.ssh/id_rsa:/ssh/id_rsa:ro=
+This is not necessary if you are accessing your git repo via HTTPS.
+
+** Usage
+Once the container is set up in docker-compose, you need some additional configuration before you start the service for the first time. You will need to specify some environment variables (either in a .env file, or directly in the docker-compose file), and you will need to create your 'views' file and populate it with at least one view definition.
+
+*Environment Variables*
+
+- REPO_URL
+  _Required_. This variable specifies the url with which to sync your org files.
+  Example: https://github.com/username/org-files.git
+
+- REPO_BRANCH
+  _Required_. The branch within your git repo to sync.
+  Example: 'main' or 'master'
+
+- ORG_FILES
+  _Required_. The specific files within your git repo to look for. These must be comma separated absolute paths relative to the container root (they will be prefixed with =/date/repo= by default).
+  Example: "/data/repo/Agenda.org,/data/repo/Calendar.org"
+
+- VIEWS_FILE
+  _Required_. The path to your 'views' file. This must be an absolute path relative to the container root. This will depend on your docker-compose file somewhat - if you define a volume as =./views.lisp:/backend/views.lisp=, then the path you should use for this variable will be "/backend/views.lisp".
+
+- ADMIN_PASSWORD
+  _Required_ for access to admin endpoints.
+  Example: "password"
+
+- SECRET_KEY
+  _Required_. This is the secret key for cookie authentication. Should be obscure.
+  Example: "change-me" (a better example would be "xa17db3fb" or similar)
+
+- GITHUB_TOKEN
+  _Required_ if syncing to a private git repo via HTTPS.
+  This is your github personal access token.
+
+- SYNC_INTERVAL_SECONDS
+  _Required_. This defines the time interval between automatic sync attempts.
+  Example: 300
+  
+*** Views File  
+
+The views file syntax is lisp-like, and is based on 3 basic objects - a "view" (essentially defines what a single endpoint will provide), a "calendar" (primarily handles event coloring/category, if your ics client supports this), and a "query" (handles the parsing - defines what will populate within each calendar/view). An example is shown below.
+
+*View*
+The 'view' object accepts 3 parameters, and must contain /only/ one or more calendar objects.
+- =:name= is required, and denotes the name of the view. This accepts any string.
+- =:token= is required, and denotes the token id that represents the view (this is what makes up the unique url). This accepts any string (technically), but will only function as a URL if all characters are url-safe.
+- =:detail= is optional, and represents the default level of detail for this view. This accepts one of 3 values - 'full', 'time-only', and 'summary-only'. Full passes all ics information to the client (this is the default). Time-only passes only the time information to the client, replacing the summary with "Busy". Summary-only serves no additional purpose, but may be implemented more in the future, if events are expanded to support additional metadata.
+
+*Calendar*
+The 'calendar' object accepts 3 parameters, and must contain /only/ one or more query objects.
+- =:name= is required, and denotes a name for the calendar. In practice, this specifies the 'categories' field in the ics data. This accepts any value.
+- =:color= is optional, and denotes the color with which to represent this calendar. It is largely up to the ics client to read this data from the ics data. Accepted values will depend on the client, but in most cases should be limited to hex codes.
+- =:detail= is optional, and denotes the default level of detail for this calendar. See the matching parameter under the 'view' object for more information.
+
+*Query*
+The 'query' object accepts no parameters, and must contain exactly /one/ filter expression.
