@@ -10,6 +10,8 @@ import logging
 from icalendar import Calendar, Todo, Event
 from datetime import datetime, timezone
 import uuid
+import os
+from zoneinfo import ZoneInfo
 
 from .db import Base, engine, SessionLocal
 from .sync import sync_repo
@@ -17,7 +19,9 @@ from .sync_worker import run_sync_cycle, SYNC_INTERVAL, SYNC_RETRY
 from .parser import get_org_files, parse_org_file, import_tasks, refresh_db
 from .models import Task, serialize_task, serialize_event
 from .views import views_file, parse_views_file, get_tasks_for_view
-from .auth import verify_admin_login, require_admin
+from .auth import verify_admin_login, require_admin, verify_session
+
+TIMEZONE = os.getenv("TIMEZONE", "UTC")
 
 app = FastAPI(title="Org Parser API")
 router = APIRouter()
@@ -99,6 +103,19 @@ def healthz():
 @app.post("/login")
 def login(response: Response, result = Depends(verify_admin_login)):
     return result
+
+@app.get("/verify-session")
+def verify_session_endpoint(request: Request):
+    """
+    Used by frontend to check if current session is still valid.
+    Return 200 if valid, 401 if not
+    """
+    try:
+        verify_session(request)
+        return JSONResponse({"ok": True}, status_code=200)
+    except Exception as e:
+        print(e)
+        return JSONResponse({"ok": False}, status_code=401)
 
 @app.post("/admin/sync")
 @limiter.limit("2/minute")
@@ -244,9 +261,10 @@ def make_dt(date_str, time_str=None):
     """Convert DB strings to UTC datetime or date."""
     if not date_str:
         return None
+    tz = ZoneInfo(TIMEZONE)
     if time_str:
         dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-        return dt.replace(tzinfo=timezone.utc)
+        return dt.replace(tzinfo=tz)
     return datetime.strptime(date_str, "%Y-%m-%d").date()
 
 def make_event(title, start_date, start_time, end_date=None, end_time=None):
@@ -254,12 +272,18 @@ def make_event(title, start_date, start_time, end_date=None, end_time=None):
     event.add("uid", str(uuid.uuid4()))
     event.add("dtstamp", datetime.now(timezone.utc))
     event.add("summary", title)
+    
     dtstart = make_dt(start_date, start_time)
-    if dtstart:
+    if isinstance(dtstart, datetime):
+        event.add("dtstart", dtstart, parameters={"TZID": TIMEZONE})
+    else:
         event.add("dtstart", dtstart)
     dtend = make_dt(end_date, end_time)
     if dtend:
-        event.add("dtend", dtend)
+        if isinstance(dtend, datetime):
+            event.add("dtend", dtend, parameters={"TZID": TIMEZONE})
+        else:
+            event.add("dtend", dtend)
     return event
 
 def make_todo(title, due_date=None, due_time=None, todo_value=None):
@@ -267,10 +291,15 @@ def make_todo(title, due_date=None, due_time=None, todo_value=None):
     todo.add("uid", str(uuid.uuid4()))
     todo.add("dtstamp", datetime.now(timezone.utc))
     todo.add("summary", title)
-    todo.add("status", todo_value)
+    if todo_value:
+        todo.add("status", todo_value)
+        
     due = make_dt(due_date, due_time)
     if due:
-        todo.add("due", due)
+        if isinstance(due, datetime):
+            todo.add("due", due, parameters={"TZID": TIMEZONE})
+        else:
+            todo.add("due", due)
     return todo
 
 # Additional TODO fields to add (based on fields defined in github.com/ical-org/ical.net/wiki

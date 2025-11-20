@@ -1,7 +1,9 @@
 from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from itsdangerous import URLSafeTimedSerializer, BadSignature
-import secrets, os
+import secrets, os, logging
+
+logger = logging.getLogger(__name__)
 
 # --- Config ---
 security = HTTPBasic()
@@ -22,13 +24,13 @@ def verify_session(request: Request):
     """Validate session cookie, raise 401 if invalid."""
     cookie = request.cookies.get(SESSION_COOKIE)
     if not cookie:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No cookie")
     try:
         data = serializer.loads(cookie, max_age=3600 * 12) # 12 hour session
         if data.get("role") != "admin":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bad role")
     except BadSignature:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bad signature")
     return True
 
 # --- Auth Helpers ---
