@@ -10,7 +10,7 @@ class ConfigManager:
                 "value": "iCal Server",
                 "type": "text"
             },
-            "default_calendar": {
+            "default calendar": {
                 "value": "/admin/calendar.ics",
                 "type": "text"
             }
