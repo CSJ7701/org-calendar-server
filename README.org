@@ -16,23 +16,23 @@ The inspiration for this effort came primarily from [[https://calendar.online]],
 :END:
 
 * Backend
-The backend for this service primarily handles syncing and parsing of your org-mode files.
+The backend handles git syncing, org parsing, ICS generation, and view logic.
 
 ** Setup
 Most of the setup for the backend occurs within the docker-compose.yml file.
 
 #+begin_src
   services:
-  backend:
-    image: ghcr.io/csj7701/org-calendar-backend:latest
-    container_name: org-calendar-backend
-    volumes:
-      - ./data:/data
-      - ./views.lisp:/backend/views.lisp
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
+    backend:
+      image: ghcr.io/csj7701/org-calendar-backend:latest
+      container_name: org-calendar-backend
+      volumes:
+        - ./data:/data
+        - ./views.lisp:/backend/views.lisp
+      ports:
+        - "8000:8000"
+      env_file:
+        - .env
 #+end_src
 
 The example above showcases the bare-minimum setup you need to get the backend container running.
@@ -60,7 +60,7 @@ Once the container is set up in docker-compose, you need some additional configu
 
 - ORG_FILES
 
-  _Required_. The specific files within your git repo to look for. These must be comma separated absolute paths relative to the container root (they will be prefixed with =/date/repo= by default).
+  _Required_. The specific files within your git repo to look for. These must be comma separated absolute paths relative to the container root (they will be prefixed with =/data/repo= by default).
   Example: "/data/repo/Agenda.org,/data/repo/Calendar.org"
 
 - VIEWS_FILE'
@@ -107,7 +107,7 @@ The 'calendar' object accepts 3 parameters, and must contain /only/ one or more 
 
 *Query*
 
-The 'query' object accepts no parameters, and must contain exactly /one/ filter expression. Valid filter operators include the following:
+The 'query' object accepts a =:detail= parameter, and must contain exactly /one/ filter expression. Valid filter operators include the following:
 - =and=: 'AND' junction between two other queries
 - =or=: 'OR' junction between two other queries
 - =not=: negates another filter
@@ -121,3 +121,208 @@ The 'query' object accepts no parameters, and must contain exactly /one/ filter 
 - =deadline_before=: queries for entries with a deadline property before the specified date
 
 
+** Endpoints
+The backend exposes several categories of endpoints: health, authentication, admin utilities, view data, and ICS generation.
+
+*** Health
+- =GET /healthz=: Returns a simple JSON payload indicating the server is running.
+*** Authentication
+- =POST /login=: Validates the admin password. Returns a session cookie on success.
+- =GET /verify-session=: Verifies whether the current session cookie is valid. Returns 200 if valid, 401 if invalid.
+*** Admin Actions
+All admin endpoints require a valid session cookie. Rate-limited.
+- =POST /admin/sync=: Immediately triggers a git sync and parse cycle
+- =POST /admin/import=: Imports all org files into the database. /Parameter:/ =refresh= (boolean) - wipe DB before import.
+- =GET /admin/calendar.ics=: Generates a full ICS file of *all* tasks/events in the database.
+- =GET /admin/views=: Returns all parsed views from the views file.
+*** View Data
+- =GET /view/{token}=: Returns the definition of the specified view
+*** Per-View Data
+These endpoints expose data after applying your filters (view + calendar + query).
+
+- =GET /calendar/{token}/tasks.json=: Returns JSON for all tasks matching the view. (WIP: currently returns both tasks and events)
+- =GET /calendar/{token}/events.json=: Returns JSON for all events matching the view. (WIP: currently returns both tasks and events)
+- =GET /calendar/{token}.ics=: Returns a multi-calendar ICS feed containing all events/todos in that view.
+  
+* Frontend
+The frontend provides an optional, lightweight UI for interacting with the server. It allows you to:
+- Access your defined views with isolated, tokenized URLs
+- View calendar events and todos, either together or separately
+- Access a password protected admin dashboard, which shows all events/todos and allows you to browse your defined views
+
+
+The frontend does not modify org files; all edits still occur in your repository.
+
+** Setup
+As with the backend container, most of the setup for the frontend occurs within the docker-compose file.
+
+#+begin_src
+  services:
+    backend:
+      # Backend configuration goes here
+      # The name you use here is important - if you change this from "backend:" you must update "BACKEND_URL" to match.
+    frontend:
+      image: ghcr.io/csj7701/org-calendar-frontend:latest
+      container_name: org-calendar-frontend
+      ports:
+        - "8001:8000"
+      env_file:
+        - .env
+      environment:
+        - BACKEND_URL=http://backend:8000
+#+end_src
+
+This showcases the minimal required configuration necessary to get the frontend container running. As with the backend container, you do not /have/ to use a .env file (in fact, with the above example it is not necessary - =BACKEND_URL= is the only environment variable the frontend requires to run).
+The =BACKEND_URL= variable should not be changed unless you know what you are doing (or unless you changed the internal container name) - this is a docker-internal route that the frontend relies on to access the backend container endpoints. Change the port definition as needed (if you want to access your frontend on port 8005 for example, change this to "8005:8000" - the port just can't conflict with the port you expose for the backend.
+
+** Endpoints
+
+*** Navigation
+- =GET /=: Redirects to the home page (=/home=)
+- =GET /home=: Dashboard view
+- =GET /events=: Displays the default calendar's events
+- =GET /tasks=: Displays the default calendar's tasks
+- =GET /views=: Lists all backend-defined views
+- =GET /settings=: Displays frontend config settings
+- =POST /settings=: Saves updates settings
+
+*** Authentication
+- =GET /login=: Login page
+- =POST /login=: Submits admin password; forwards to backend =/login= and mirrors session cookies
+- =GET /logout=: Clears session cookie and redirects to =/login=.
+
+*** Calendar Views (per-token)
+- =GET /calendar/{token}=: Displays a dashboard for the specified view
+- =GET /calendar/{token}/events=: Displays the view's events
+- =GET /calendar/{token}/tasks=: Displays the view's tasks
+
+*** Proxy
+- =/proxy/{path}= (all HTTP methods): A general-purpose reverse proxy that forwards any request under =/proxy/*= to the backend. This is used to access backend ICS feeds and view JSON while preserving authentication cookies.
+
+* Examples
+
+Example: *Docker-Compose.yml*
+
+#+begin_src yaml
+  services:
+    backend:
+      image: ghcr.io/csj7701/org-calendar-backend:latest
+      container_name: org-calendar-backend
+      volumes:
+        - ./data:/data
+        - ./views.lisp:/backend/views.lisp # User created
+      ports:
+        - "8000:8000"
+      env_file:
+        - .env # User created
+
+    frontend:
+      image: ghcr.io/csj7701/org-calendar-frontend:latest
+      container_name: org-calendar-frontend
+      ports:
+        - "8001:8000"
+      environment:
+        - BACKEND_URL=http://backend:8000
+#+end_src
+
+Example: *.env*
+
+#+begin_src
+REPO_URL=https://github.com/USERNAME/org.git
+REPO_BRANCH=master
+ORG_FILES="/data/repo/Agenda.org,/data/repo/Inbox.org,/data/repo/Calendar.org"
+VIEWS_FILE="/backend/views.lisp"
+GITHUB_TOKEN=ghp_XXX123
+#+end_src
+
+Example: *Views.lisp*
+
+#+begin_export lisp
+(view
+ :name "Todos"
+ :token "1"
+ ; token "1" means that the url to access this view will be "http://host:frontend_port/calendar/1" or "http://host:backend_port/calendar/1.ics"
+ (calendar
+  :name "Todos"
+  :color "#ff0000"
+  (query
+   :detail "full"
+   (kind "task"))))
+
+(view
+ :name "Events"
+ :token "2"
+ (calendar
+  :name "Events"
+  :color "#00ffff"
+  (query
+   :detail "full"
+   (kind "event"))))
+
+(view
+ :name "Multi"
+ :token "3"
+ :detail "time-only"
+ (calendar
+  :name "Multi"
+  (query
+   :detail "full"
+   (and
+    (file "/data/repo/Calendar.org")
+    (kind "task")))
+  ;; File needs to be absolute, relative to project root
+  (query
+   :detail "time-only"
+   (and
+    (file "/data/repo/Calendar.org")
+    (kind "event")))))
+
+(view
+ :name "Admin"
+ :token "4"
+ :detail "full"
+ (calendar :name "Work" :color "#4169e1"
+	   (query
+	    (tag "Work")))
+ (calendar :name "Personal" :color "#228b22"
+	   (query
+	    (tag "Personal")))
+ (calendar :name "Family" :color "#9370db"
+	   (query
+	    (tag "Family")))
+ (calendar :name "School" :color "#f4a460"
+	   (query
+	    (tag "School"))))
+
+(view
+ :name "Public"
+ :token "Po0jj8ZgUs2m"
+ :detail "full"
+ (calendar :name "Work" :color "#4682b4"
+	   (query
+	    (tag "Work")))
+ (calendar :name "Personal" :color "#2e8b57" :detail "time-only"
+	   (query
+	    (tag "Personal")))
+ (calendar :name "Family" :color "#6a5acd"
+	   (query
+	    (tag "Family"))))
+#+end_export
+
+* How it Works
+A high-level overview:
+
+1. *Sync Cycle*: The backend periodically syncs your git repository using the configured branch and credentials.
+
+2. *Parsing*: The org files specified in `ORG_FILES` are parsed into normalized task/event JSON objects. The parser extracts: TODO states, tags, timestamps, scheduled entries, deadlines, repeaters, warnings, and raw text. (/NOTE/: Currently, the ICS parser does not handle repeaters/warnings, so even though these are parsed from ORG to JSON, they are not parsed from JSON to ICS. This is primarily because fullcalendar has only limited client-side support for recurring events, and I have not yet found an elegant way to handle this)
+
+3. *Database Import*: The parsed data is stored in a local SQLite database for fast lookup and stable ICS generation.
+
+4. *View Evaluation*: Each view applies its filters (queries) to determine which entries belong in each calendar. Calendars can optionally specify colors or detail levels.
+
+5. *ICS Generation*: Each view becomes an endpoint at: /calendar/<token>.ics. The server emits valid VEVENT/VTODO components based on the normalized data.
+
+6. *Frontend* (optional): A small UI provides insight into sync status and parsed data.
+
+* Contributing
+Contributions are welcome. Input, bug reports, and improvements to parsing or ICS generation are appreciated.
