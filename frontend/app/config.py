@@ -14,6 +14,16 @@ class ConfigManager:
                 "value": "/admin/calendar.ics",
                 "type": "text"
             }
+        },
+        "User": {
+            "name": {
+                "value": "Default User",
+                "type": "text"
+            },
+            "email": {
+                "value": "Default@Example.com",
+                "type": "text"
+            }
         }
     }
     
