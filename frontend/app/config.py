@@ -6,8 +6,13 @@ CONFIG_PATH = Path("config.json")
 class ConfigManager:
     DEFAULTS = {
         "App": {
-            "name": "iCal Server",
-            "default_calendar": "/admin/calendar.ics",
+            "name": {
+                "value": "iCal Server",
+                "type": "text"
+            },
+            "default_calendar": {
+                "value": "/admin/calendar.ics",
+                "type": "text"
             }
         }
     
