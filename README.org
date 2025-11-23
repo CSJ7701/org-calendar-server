@@ -13,6 +13,22 @@ The inspiration for this effort came primarily from [[https://calendar.online]],
   - [[#setup][Setup]]
   - [[#usage][Usage]]
     - [[#views-file][Views File]]
+  - [[#endpoints][Endpoints]]
+    - [[#health][Health]]
+    - [[#authentication][Authentication]]
+    - [[#admin-actions][Admin Actions]]
+    - [[#view-data][View Data]]
+    - [[#per-view-data][Per-View Data]]
+- [[#frontend][Frontend]]
+  - [[#setup][Setup]]
+  - [[#endpoints][Endpoints]]
+    - [[#navigation][Navigation]]
+    - [[#authentication][Authentication]]
+    - [[#calendar-views-per-token][Calendar Views (per-token)]]
+    - [[#proxy][Proxy]]
+- [[#examples][Examples]]
+- [[#how-it-works][How it Works]]
+- [[#contributing][Contributing]]
 :END:
 
 * Backend
