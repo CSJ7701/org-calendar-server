@@ -4,6 +4,13 @@ from pathlib import Path
 CONFIG_PATH = Path("config.json")
 
 class ConfigManager:
+    DEFAULTS = {
+        "App": {
+            "name": "iCal Server",
+            "default_calendar": "/admin/calendar.ics",
+            }
+        }
+    
     def __init__(self, path: Path = CONFIG_PATH):
         self.path = path
         self.config = {}
@@ -16,7 +23,7 @@ class ConfigManager:
 
         else:
             # Populate defaults
-            self._config = {}
+            self._config = self.DEFAULTS.copy()
             self.save()
 
     def save(self):
