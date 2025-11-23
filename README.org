@@ -1,8 +1,19 @@
 * Org Calendar Server
+:PROPERTIES:
+:TOC:      :include all :depth 3
+:END:
 
 This project is intended to serve iCal files based off of a user's org files. Org files are synced automatically from a git repo, parsed using user-defined "views", and served as tokenized .ics endpoints. This project also includes an optional frontend, to streamline access to these endpoints.
 
 The inspiration for this effort came primarily from [[https://calendar.online]], which I used for some time. Calendar.online allows you to create free, public iCal calendars, then share them with relatively fine-grained visibility settings. I wanted to be able to replicate some of this functionality within org-mode, since I sometimes have a need to share calendar information with family/friends, but may not want to share every detail of my schedule with them.
+
+:CONTENTS:
+- [[#org-calendar-server][Org Calendar Server]]
+- [[#backend][Backend]]
+  - [[#setup][Setup]]
+  - [[#usage][Usage]]
+    - [[#views-file][Views File]]
+:END:
 
 * Backend
 The backend for this service primarily handles syncing and parsing of your org-mode files.
@@ -38,33 +49,41 @@ Once the container is set up in docker-compose, you need some additional configu
 *Environment Variables*
 
 - REPO_URL
+  
   _Required_. This variable specifies the url with which to sync your org files.
   Example: https://github.com/username/org-files.git
 
 - REPO_BRANCH
+  
   _Required_. The branch within your git repo to sync.
   Example: 'main' or 'master'
 
 - ORG_FILES
+
   _Required_. The specific files within your git repo to look for. These must be comma separated absolute paths relative to the container root (they will be prefixed with =/date/repo= by default).
   Example: "/data/repo/Agenda.org,/data/repo/Calendar.org"
 
-- VIEWS_FILE
+- VIEWS_FILE'
+  
   _Required_. The path to your 'views' file. This must be an absolute path relative to the container root. This will depend on your docker-compose file somewhat - if you define a volume as =./views.lisp:/backend/views.lisp=, then the path you should use for this variable will be "/backend/views.lisp".
 
 - ADMIN_PASSWORD
+  
   _Required_ for access to admin endpoints.
   Example: "password"
 
 - SECRET_KEY
+  
   _Required_. This is the secret key for cookie authentication. Should be obscure.
   Example: "change-me" (a better example would be "xa17db3fb" or similar)
 
 - GITHUB_TOKEN
+  
   _Required_ if syncing to a private git repo via HTTPS.
   This is your github personal access token.
 
 - SYNC_INTERVAL_SECONDS
+  
   _Required_. This defines the time interval between automatic sync attempts.
   Example: 300
   
@@ -73,16 +92,32 @@ Once the container is set up in docker-compose, you need some additional configu
 The views file syntax is lisp-like, and is based on 3 basic objects - a "view" (essentially defines what a single endpoint will provide), a "calendar" (primarily handles event coloring/category, if your ics client supports this), and a "query" (handles the parsing - defines what will populate within each calendar/view). An example is shown below.
 
 *View*
+
 The 'view' object accepts 3 parameters, and must contain /only/ one or more calendar objects.
 - =:name= is required, and denotes the name of the view. This accepts any string.
 - =:token= is required, and denotes the token id that represents the view (this is what makes up the unique url). This accepts any string (technically), but will only function as a URL if all characters are url-safe.
 - =:detail= is optional, and represents the default level of detail for this view. This accepts one of 3 values - 'full', 'time-only', and 'summary-only'. Full passes all ics information to the client (this is the default). Time-only passes only the time information to the client, replacing the summary with "Busy". Summary-only serves no additional purpose, but may be implemented more in the future, if events are expanded to support additional metadata.
 
 *Calendar*
+
 The 'calendar' object accepts 3 parameters, and must contain /only/ one or more query objects.
 - =:name= is required, and denotes a name for the calendar. In practice, this specifies the 'categories' field in the ics data. This accepts any value.
 - =:color= is optional, and denotes the color with which to represent this calendar. It is largely up to the ics client to read this data from the ics data. Accepted values will depend on the client, but in most cases should be limited to hex codes.
 - =:detail= is optional, and denotes the default level of detail for this calendar. See the matching parameter under the 'view' object for more information.
 
 *Query*
-The 'query' object accepts no parameters, and must contain exactly /one/ filter expression.
+
+The 'query' object accepts no parameters, and must contain exactly /one/ filter expression. Valid filter operators include the following:
+- =and=: 'AND' junction between two other queries
+- =or=: 'OR' junction between two other queries
+- =not=: negates another filter
+- =tag=: queries for entries with matching tags
+- =todo=: queries for entries with a matching TODO state
+- =kind=: queries for entries with a matching "kind" value (event or todo). In this case, a "task" is anything with a todo state, or a scheduled or deadline property. "Events" are everything else.
+- =file=: queries for entries from a matching file
+- =scheduled_after=: queries for entries with a scheduled property after the specified date
+- =scheduled_before=: queries for entries with a scheduled property before the specified date
+- =deadline_after=: queries for entries with a deadline property after the specified date
+- =deadline_before=: queries for entries with a deadline property before the specified date
+
+
