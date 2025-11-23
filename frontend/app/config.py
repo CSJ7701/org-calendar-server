@@ -15,6 +15,7 @@ class ConfigManager:
                 "type": "text"
             }
         }
+    }
     
     def __init__(self, path: Path = CONFIG_PATH):
         self.path = path
