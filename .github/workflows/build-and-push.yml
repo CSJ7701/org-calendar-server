@@ -48,6 +48,10 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ steps.owner_name.outputs.result }}/${{ env.BACKEND_IMAGE }}:latest
             ${{ env.REGISTRY }}/${{ steps.owner_name.outputs.result }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.run_id }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -58,3 +62,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ steps.owner_name.outputs.result }}/${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.REGISTRY }}/${{ steps.owner_name.outputs.result }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.run_id }}
