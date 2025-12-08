@@ -333,10 +333,6 @@ Example: *Frontend*
 
 [[file:./assets/Calendar.png]]
 
-#+begin_html
-  <img src="./assets/Calendar.png"/>
-#+end_html
-
 * How it Works
 A high-level overview:
 
