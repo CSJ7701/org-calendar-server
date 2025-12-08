@@ -331,7 +331,7 @@ Example: *Views.lisp*
 
 Example: *Frontend*
 
-[[./assets/Calendar.jpg]]
+[[file:./assets/Calendar.jpg]]
 
 * How it Works
 A high-level overview:
