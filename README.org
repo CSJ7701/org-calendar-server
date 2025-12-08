@@ -331,10 +331,10 @@ Example: *Views.lisp*
 
 Example: *Frontend*
 
-[[file:./assets/Calendar.jpg]]
+[[file:./assets/Calendar.png]]
 
 #+begin_html
-  <img src="./assets/Calendar.jpg"/>
+  <img src="./assets/Calendar.png"/>
 #+end_html
 
 * How it Works
