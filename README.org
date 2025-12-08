@@ -102,6 +102,10 @@ Once the container is set up in docker-compose, you need some additional configu
   
   _Required_. This defines the time interval between automatic sync attempts.
   Example: 300
+
+- TIMEZONE
+
+  _Optional_. This defines the timezone events should be shown in. This defaults to UTC, so unless you want all your data shown with UTC times, this is a soft requirement.
   
 *** Views File  
 
