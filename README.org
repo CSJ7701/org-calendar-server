@@ -348,5 +348,12 @@ A high-level overview:
 
 6. *Frontend* (optional): A small UI provides insight into sync status and parsed data.
 
+
+* For the Future
+
+- [ ] Use org-ical insted of my custom parser
+- [ ] Support a wider range of event properties
+- [ ] Support relative date syntax in views file
+
 * Contributing
 Contributions are welcome. Input, bug reports, and improvements to parsing or ICS generation are appreciated.
