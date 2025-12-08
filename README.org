@@ -257,7 +257,7 @@ GITHUB_TOKEN=ghp_XXX123
 
 Example: *Views.lisp*
 
-#+begin_export lisp
+#+begin_src lisp
 (view
  :name "Todos"
  :token "1"
@@ -327,7 +327,11 @@ Example: *Views.lisp*
  (calendar :name "Family" :color "#6a5acd"
 	   (query
 	    (tag "Family"))))
-#+end_export
+#+end_src
+
+Example: *Frontend*
+
+[[./assets/Calendar.jpg]]
 
 * How it Works
 A high-level overview:
