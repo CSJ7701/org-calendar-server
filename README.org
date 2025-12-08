@@ -333,9 +333,9 @@ Example: *Frontend*
 
 [[file:./assets/Calendar.jpg]]
 
-#+begin_src html
+#+begin_html
   <img src="./assets/Calendar.jpg"/>
-#+end_src
+#+end_html
 
 * How it Works
 A high-level overview:
