@@ -352,6 +352,7 @@ A high-level overview:
 * For the Future
 
 - [ ] Use org-ical insted of my custom parser
+- [ ] Re-implement as an emacs package, rather than python
 - [ ] Support a wider range of event properties
 - [ ] Support relative date syntax in views file
 
