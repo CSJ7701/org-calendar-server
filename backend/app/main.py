@@ -269,25 +269,6 @@ def make_dt(date_str, time_str=None):
         return dt.replace(tzinfo=tz)
     return datetime.strptime(date_str, "%Y-%m-%d").date()
 
-def make_event_old(title, start_date, start_time, end_date=None, end_time=None):
-    event = Event()
-    event.add("uid", str(uuid.uuid4()))
-    event.add("dtstamp", datetime.now(timezone.utc))
-    event.add("summary", title)
-    
-    dtstart = make_dt(start_date, start_time)
-    if isinstance(dtstart, datetime):
-        event.add("dtstart", dtstart, parameters={"TZID": TIMEZONE})
-    else:
-        event.add("dtstart", dtstart)
-    dtend = make_dt(end_date, end_time)
-    if dtend:
-        if isinstance(dtend, datetime):
-            event.add("dtend", dtend, parameters={"TZID": TIMEZONE})
-        else:
-            event.add("dtend", dtend)
-    return event
-
 def make_event(title, start_date, start_time, end_date=None, end_time=None):
     event=Event()    
     event.add("uid", str(uuid.uuid4()))
@@ -302,22 +283,6 @@ def make_event(title, start_date, start_time, end_date=None, end_time=None):
         event.add("dtend", dtend)
         
     return event
-
-def make_todo_old(title, due_date=None, due_time=None, todo_value=None):
-    todo = Todo()
-    todo.add("uid", str(uuid.uuid4()))
-    todo.add("dtstamp", datetime.now(timezone.utc))
-    todo.add("summary", title)
-    if todo_value:
-        todo.add("status", todo_value)
-        
-    due = make_dt(due_date, due_time)
-    if due:
-        if isinstance(due, datetime):
-            todo.add("due", due, parameters={"TZID": TIMEZONE})
-        else:
-            todo.add("due", due)
-    return todo
 
 def make_todo(title, due_date=None, due_time=None, todo_value=None):
     todo = Todo()
