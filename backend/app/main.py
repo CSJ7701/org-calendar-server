@@ -95,6 +95,7 @@ async def periodic_task() -> None:
     logger.info("Views updated")
     import_org_files()
     logger.info("Database updated")
+    logger.info(f"Timezone: {TIMEZONE}")
     
 @app.get("/healthz")
 def healthz():
