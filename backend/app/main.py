@@ -85,7 +85,7 @@ async def startup_event():
     global VIEWS
     VIEWS = parse_views_file(views_file)
     logger.info("Views parsed: " + str(len(VIEWS)))
-    logger.info(f"Timezone: {TIMEZONE}")
+    logger.info("Timezone: " + TIMEZONE)
 
 @app.on_event("startup")
 @repeat_every(seconds=SYNC_INTERVAL, wait_first=False, raise_exceptions=True)
