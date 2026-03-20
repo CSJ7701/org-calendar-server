@@ -267,7 +267,7 @@ def make_dt(date_str, time_str=None):
         return dt.replace(tzinfo=tz)
     return datetime.strptime(date_str, "%Y-%m-%d").date()
 
-def make_event(title, start_date, start_time, end_date=None, end_time=None):
+def make_event_old(title, start_date, start_time, end_date=None, end_time=None):
     event = Event()
     event.add("uid", str(uuid.uuid4()))
     event.add("dtstamp", datetime.now(timezone.utc))
@@ -286,7 +286,22 @@ def make_event(title, start_date, start_time, end_date=None, end_time=None):
             event.add("dtend", dtend)
     return event
 
-def make_todo(title, due_date=None, due_time=None, todo_value=None):
+def make_event(title, start_date, start_time, end_date=None, end_time=None):
+    event=Event()    
+    event.add("uid", str(uuid.uuid4()))
+    event.add("dtstamp", datetime.now(timezone.utc))
+    event.add("summary", title)
+    
+    dtstart = make_dt(start_date, start_time)
+    event.add("dtstart", dtstart)
+
+    dtend = make_dt(end_date, end_time)
+    if dtend:
+        event.add("dtend", dtend)
+        
+    return event
+
+def make_todo_old(title, due_date=None, due_time=None, todo_value=None):
     todo = Todo()
     todo.add("uid", str(uuid.uuid4()))
     todo.add("dtstamp", datetime.now(timezone.utc))
@@ -301,6 +316,21 @@ def make_todo(title, due_date=None, due_time=None, todo_value=None):
         else:
             todo.add("due", due)
     return todo
+
+def make_todo(title, due_date=None, due_time=None, todo_value=None):
+    todo = Todo()
+    todo.add("uid", str(uuid.uuid4()))
+    todo.add("dtstamp", datetime.now(timezone.utc))
+    todo.add("summary", title)
+    if todo_value:
+        todo.add("status", todo_value)
+        
+    due = make_dt(due_date, due_time)
+    if due:
+        todo.add("due", due)
+    return todo
+
+
 
 # Additional TODO fields to add (based on fields defined in github.com/ical-org/ical.net/wiki
 # PRIORITY, STATUS (todo)
