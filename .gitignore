@@ -11,3 +11,4 @@ frontend/app/__pycache__
 data/repo
 data/db.sqlite
 
+*.~undo-tree~
