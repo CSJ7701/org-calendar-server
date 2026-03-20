@@ -85,6 +85,7 @@ async def startup_event():
     global VIEWS
     VIEWS = parse_views_file(views_file)
     logger.info("Views parsed: " + str(len(VIEWS)))
+    logger.info(f"Timezone: {TIMEZONE}")
 
 @app.on_event("startup")
 @repeat_every(seconds=SYNC_INTERVAL, wait_first=False, raise_exceptions=True)
@@ -95,7 +96,7 @@ async def periodic_task() -> None:
     logger.info("Views updated")
     import_org_files()
     logger.info("Database updated")
-    logger.info(f"Timezone: {TIMEZONE}")
+
     
 @app.get("/healthz")
 def healthz():
